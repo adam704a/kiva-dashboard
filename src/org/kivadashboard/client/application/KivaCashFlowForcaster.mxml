@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
+	layout="absolute"
+	creationComplete="onCreateComplete()" 
+	backgroundColor="white"
+	width="765"
+	height="500"
+	 xmlns:control="org.kivadashboard.client.control.*" 
+	 xmlns:business="org.kivadashboard.client.business.*" viewSourceURL="srcview/index.html">
+	
+	<mx:Script>
+
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.formatters.DateBase;
+			import mx.formatters.DateFormatter;
+			import mx.formatters.NumberFormatter;
+			
+			import org.kivadashboard.client.event.GetProvincialDataLoansEvent;
+			import org.kivadashboard.client.event.UpdatedLoanDataEvent;
+			import org.kivadashboard.client.model.object.KivaModel;
+			import org.kivadashboard.client.model.object.ProvincialDataLoan;
+			import org.kivadashboard.client.model.util.KivaModelLocator;
+
+
+			[Bindable]
+			public var kivaModel : KivaModel = KivaModelLocator.getInstance();
+
+			public function onCreateComplete():void {
+			
+				 // Add Event Listeners
+				 kivaModel.addEventListener(UpdatedLoanDataEvent.EVENT_NAME, updatedLoanDataEventListener);
+				 
+				// Get stuff from the flash variables
+				var xmlurl:String = FlexGlobals.topLevelApplication.parameters.xmlurl;
+				trace("This is my url: " + xmlurl);
+				
+				// Get the data
+				var getProvincialDataLoansEvent:GetProvincialDataLoansEvent = new GetProvincialDataLoansEvent(xmlurl);
+				getProvincialDataLoansEvent.dispatch();	
+
+			}
+
+
+			public function updatedLoanDataEventListener(event:UpdatedLoanDataEvent):void{
+				
+				repaymentScheduleChart.dataProvider = kivaModel.loans;			
+				mainCanvas.visible = true;
+				
+			}
+
+		]]>
+
+	</mx:Script>
+	
+	<!-- ========================================================================== -->
+	<!-- the ServiceLocator where we specify the remote services -->
+	<control:KivaController id="controller" />
+	
+	<!-- the FrontController, containing Commands specific to this appliation -->
+	<business:Services id="services" />
+	
+	<!-- ========================================================================== -->	
+
+<mx:Canvas id="mainCanvas" visible="true" height="500" width="765">
+	<mx:Label x="44" y="10" text="Kiva Loan Payment Cashflow Forcaster" fontSize="26" id="titleLabel"/>
+	<mx:LineChart x="33" y="68" id="repaymentScheduleChart" showDataTips="true" width="730"  >	
+
+	<mx:horizontalAxis>
+		<mx:CategoryAxis id="categoryAxis" categoryField="Month" />
+	</mx:horizontalAxis>
+
+		<mx:series>
+			<mx:LineSeries displayName="Projected" yField="Payment"/>
+		</mx:series>
+	</mx:LineChart>
+
+	<mx:Legend id="totalLoansLegend" x="33" y="466" dataProvider="{repaymentScheduleChart}" width="235"  height="33" />
+	<mx:Label x="589" y="467" id="totalLoansLabel" text="Total Loans:"  fontWeight="bold"/>
+	<mx:Text x="672" y="467" id="totalLoansText" width="81" />
+	<mx:Text x="44" y="42" text="another tool brought to you by The Kiva Dashboard." width="659" id="description"/>
+</mx:Canvas>
+	
+
+</mx:Application>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:control="org.kiva.client.control.*" 
+	xmlns:business="org.kiva.client.business.*"
+	creationComplete="onCreationComplete()">
+	
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.core.Application;
+			import mx.core.FlexGlobals;
+			
+			public function onCreationComplete(): void{
+				
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Label x="51" y="39" text="MFI Screen"/>
+	
+	<mx:DataGrid x="27" y="84">
+		<mx:columns>
+			<mx:DataGridColumn headerText="Column 1" dataField="col1"/>
+			<mx:DataGridColumn headerText="Column 2" dataField="col2"/>
+			<mx:DataGridColumn headerText="Column 3" dataField="col3"/>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:LinkButton x="247" y="243" label="Back to Regions" id="regionsLink" color="#0152F6" 
+		textDecoration="underline" fontWeight="normal" click="FlexGlobals.topLevelApplication.showLoansByRegion()"/>
+	
+	
+
+	
+</mx:Canvas>

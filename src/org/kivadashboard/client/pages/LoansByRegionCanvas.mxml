@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:control="org.kiva.client.control.*" 
+	xmlns:business="org.kiva.client.business.*"
+	creationComplete="onCreationComplete()">
+	
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.charts.events.ChartItemEvent;
+			import mx.collections.ArrayCollection;
+			import mx.core.Application;
+			import mx.core.FlexGlobals;
+			
+			import org.kivadashboard.client.command.GetAfricaLoanTotalsCommand;
+			import org.kivadashboard.client.event.GetAfricaLoanTotalsEvent;
+			import org.kivadashboard.client.event.GetAsiaLoanTotalsEvent;
+			import org.kivadashboard.client.event.GetCentralAmericaLoanTotalsEvent;
+			import org.kivadashboard.client.event.GetEasternEuropeanLoanTotalsEvent;
+			import org.kivadashboard.client.event.GetMiddleEastLoanTotalsEvent;
+			import org.kivadashboard.client.event.GetNorthAmericaLoanTotalsEvent;
+			import org.kivadashboard.client.event.GetSouthAmericaLoanTotalsEvent;
+			import org.kivadashboard.client.event.UpdateGraphDataEvent;
+			import org.kivadashboard.client.model.object.KivaModel;
+			import org.kivadashboard.client.model.util.KivaModelLocator;
+			
+			
+			[Bindable]
+			public var kivaModel : KivaModel = KivaModelLocator.getInstance();
+			
+			[Bindable]
+			public var loansByCountry:ArrayCollection = new ArrayCollection([
+				{Country:"North America", NumberOfLoans:kivaModel.northAmericaLoanCount},
+				{Country:"Central America", NumberOfLoans:kivaModel.centralAmericaLoanCount},
+				{Country:"South America", NumberOfLoans:kivaModel.southAmericaLoanCount},
+				{Country:"Africa", NumberOfLoans:kivaModel.africaLoanCount},
+				{Country:"Middle East", NumberOfLoans:kivaModel.middleEastLoanCount},
+				{Country:"Eastern Europe", NumberOfLoans:kivaModel.easternEuropeLoanCount},
+				{Country:"Asia", NumberOfLoans:kivaModel.asiaLoanCount}
+				]);
+				
+		
+				
+			public function onCreationComplete():void{
+				
+				trace("Getting the Loan Information by Region");
+				
+				var getAsiaLoanTotalsEvent:GetAsiaLoanTotalsEvent = new GetAsiaLoanTotalsEvent();
+				getAsiaLoanTotalsEvent.dispatch();	
+				
+				var getAfricaLoanTotalsEvent:GetAfricaLoanTotalsEvent = new GetAfricaLoanTotalsEvent();
+				getAfricaLoanTotalsEvent.dispatch();
+				
+				var getCentralAmericaLoanTotalsEvent:GetCentralAmericaLoanTotalsEvent = new GetCentralAmericaLoanTotalsEvent();
+				getCentralAmericaLoanTotalsEvent.dispatch();
+				
+				var getEastEuropeLoanTotalsEvent:GetEasternEuropeanLoanTotalsEvent = new GetEasternEuropeanLoanTotalsEvent();
+				getEastEuropeLoanTotalsEvent.dispatch();
+				
+				var getMiddleEastLoanTotalsEvent:GetMiddleEastLoanTotalsEvent = new GetMiddleEastLoanTotalsEvent();
+				getMiddleEastLoanTotalsEvent.dispatch();
+				
+				var getNorthAmericaLoanTotalsEvent:GetNorthAmericaLoanTotalsEvent = new GetNorthAmericaLoanTotalsEvent();
+				getNorthAmericaLoanTotalsEvent.dispatch();
+				
+				var getSouthAmericaLoanTotalsEvent:GetSouthAmericaLoanTotalsEvent = new GetSouthAmericaLoanTotalsEvent();
+				getSouthAmericaLoanTotalsEvent.dispatch();
+				
+				kivaModel.addEventListener(UpdateGraphDataEvent.EVENT_NAME, updateGraphData);
+			}
+			
+			
+			public function chartClickEventHandler(event:ChartItemEvent):void{
+				trace("I am in chartevent");
+				FlexGlobals.topLevelApplication.showMFIsPerRegion();
+			}
+			
+			public function updateGraphData(event:UpdateGraphDataEvent):void {
+				
+				loansByCountryChart.dataProvider =  new ArrayCollection([
+						{Country:"North America", NumberOfLoans:kivaModel.northAmericaLoanCount},
+						{Country:"Central America", NumberOfLoans:kivaModel.centralAmericaLoanCount},
+						{Country:"South America", NumberOfLoans:kivaModel.southAmericaLoanCount},
+						{Country:"Africa", NumberOfLoans:kivaModel.africaLoanCount},
+						{Country:"Middle East", NumberOfLoans:kivaModel.middleEastLoanCount},
+						{Country:"Eastern Europe", NumberOfLoans:kivaModel.easternEuropeLoanCount},
+						{Country:"Asia", NumberOfLoans:kivaModel.asiaLoanCount}
+						]);
+			}
+			
+			
+		]]>
+	</mx:Script>
+		
+	
+
+
+	
+
+	<mx:Text x="92" y="9" text="Kiva Loans by Region" fontSize="24"/>
+	
+	<mx:BarChart x="35" y="52" id="loansByCountryChart" 
+		showDataTips="true" 
+		itemClick="chartClickEventHandler(event)">
+	
+	<mx:verticalAxis>
+		<mx:CategoryAxis dataProvider="{loansByCountry}" categoryField="Country" />
+	</mx:verticalAxis>
+	
+	<mx:series>
+		<mx:BarSeries displayName="Loans" xField="NumberOfLoans" yField="Country" />
+	</mx:series>
+   
+   </mx:BarChart>
+	
+
+
+
+</mx:Canvas>

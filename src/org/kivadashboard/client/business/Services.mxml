@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cairngorm:ServiceLocator
+	xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:cairngorm="http://www.adobe.com/2006/cairngorm">
+
+<mx:HTTPService id="loanSearchService" 
+	url="http://api.kivaws.org/v1/loans/search.xml?app_id=org.kivadashboard" 
+	showBusyCursor="true"/>		
+	
+<mx:HTTPService id="provincialDataLoanService" 
+	showBusyCursor="true" />
+	
+<mx:HTTPService id="loanDetailService" 
+	showBusyCursor="true" />	
+	
+<mx:HTTPService id="partnerService" 
+	url="http://api.kivaws.org/v1/partners.xml?app_id=org.kivadashboard" 
+	showBusyCursor="true" />	
+	
+<mx:HTTPService id="journalService" 
+	url="http://api.kivaws.org/v1/journal_entries/search.xml?app_id=org.kivadashboard" />
+
+</cairngorm:ServiceLocator>

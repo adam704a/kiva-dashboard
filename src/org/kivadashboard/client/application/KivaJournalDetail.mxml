@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
+	layout="absolute" backgroundColor="#FFFFFF"
+	creationComplete="onCreateComplete()" 
+	preloader="org.kivadashboard.client.components.FancyDownloadProgressBar"
+	xmlns:control="org.kivadashboard.client.control.*" 
+	xmlns:business="org.kivadashboard.client.business.*"
+	width="800"
+	height="550"
+	modalTransparencyColor="#FFFFFF">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.messaging.AbstractConsumer;
+			import mx.collections.Sort;
+			import mx.collections.SortField;
+			import mx.controls.List;
+			import mx.events.DropdownEvent;
+			import mx.events.StateChangeEvent;
+			import org.kivadashboard.client.model.object.Country;
+			import org.kivadashboard.client.model.object.Partner;
+			import mx.controls.Alert;
+			import org.kivadashboard.client.event.StopEverythingEvent;
+			import mx.utils.ObjectUtil;
+			import mx.collections.ArrayCollection;
+			import org.kivadashboard.client.event.UpdatedJournalPageEvent;
+			import mx.controls.ProgressBar;
+			import mx.managers.PopUpManager;
+			import org.kivadashboard.client.event.UpdatedJournalUsersEvent;
+			import org.kivadashboard.client.event.GetJournalsEvent;
+			import mx.events.ListEvent;
+			import mx.events.ItemClickEvent;
+			import org.kivadashboard.client.event.GetPartnersEvent;
+			import org.kivadashboard.client.event.UpdatedPartnerDataEvent;
+			import org.kivadashboard.client.model.util.KivaModelLocator;
+			import org.kivadashboard.client.model.object.KivaModel;
+			
+			public var _progBar:ProgressBar;
+			private static var selectAllCountriesLabel:String = "All";
+			
+			[Bindable]
+			public var kivaModel : KivaModel = KivaModelLocator.getInstance();
+			
+			public var countries:ArrayCollection = new ArrayCollection();
+			
+			private function onCreateComplete():void {
+				
+				 // Add Event Listeners
+				 kivaModel.addEventListener(UpdatedPartnerDataEvent.EVENT_NAME, updatedPartnerDataEventListener);
+				 addEventListener(UpdatedJournalUsersEvent.EVENT_NAME, updateJournalUsersEventListener);
+				 addEventListener(UpdatedJournalPageEvent.EVENT_NAME, updatedJournalPageEventListener);
+				 addEventListener(StopEverythingEvent.EVENT_NAME, stopEverythingEventListener);
+				 
+				 countryDataProvider.addEventListener(DropdownEvent.CLOSE, changeCountryEventListener);
+				 
+				// Get the data
+				var getPartnersEvent:GetPartnersEvent = new GetPartnersEvent();
+				getPartnersEvent.dispatch();	
+			}
+			
+			public function updatedJournalPageEventListener(event:UpdatedJournalPageEvent):void {
+				_progBar.setProgress(event.currentPage, event.totalPages);
+			}
+			
+			private function updatedPartnerDataEventListener(event:UpdatedPartnerDataEvent):void {
+				
+				trace("I have updated the partner data");
+				
+				// Sort the partner list
+				var partnerSort:Sort = new Sort(); 
+				partnerSort.fields = [new SortField("name", true)];
+				kivaModel.partners.sort = partnerSort;
+				kivaModel.partners.refresh();
+				
+				partnerDataGrid.dataProvider = kivaModel.partners;
+
+				countries.addItem(selectAllCountriesLabel);
+				
+				//Now populate the countryDataProvider
+				for each(var partner:Partner in kivaModel.partners){
+					
+					for each(var country:Country in partner.countries){
+						
+						if( ! countries.contains(country.name)){
+							countries.addItem(country.name);
+						}
+					}
+					
+				}
+				
+				// Sort the country list
+			 	var sort:Sort = new Sort(); 
+			 	sort.compareFunction = sortFunctionToPlaceAllFirst;
+				countries.sort = sort;
+    			countries.refresh();	
+		
+				countryDataProvider.dataProvider = countries;
+
+				
+			}
+			
+			//Always places the "All" on top
+			private function sortFunctionToPlaceAllFirst(itemA:Object, itemB:Object, fields:Array = null):int{
+				
+				if(itemA == selectAllCountriesLabel){
+					return -1;
+				}
+				if(itemB == selectAllCountriesLabel){
+					return 1;
+				}
+				return ObjectUtil.compare(itemA, itemB);
+				
+			}
+			
+			// Do this when someone clicks on the Partner
+			private function partnerItemClickEvent(event:ListEvent):void {
+
+				// Make sure to clear out the old list
+				kivaModel.journalUserNames.removeAll();
+				kivaModel.journalUsers.removeAll();
+				
+				showLoading();
+				// Get the data
+				var getJournalsEvent:GetJournalsEvent = new GetJournalsEvent(event.itemRenderer.data.id, 1);
+				getJournalsEvent.dispatch();	
+				
+			}
+			
+			private function stopEverythingEventListener(event:StopEverythingEvent):void {
+				PopUpManager.removePopUp(_progBar);
+				Alert.show("Oh crap! Something happend when trying to get this data from the Kiva. Specifically, we ran into a " + event.faultString + ", not that this means anything to you or anything.");
+			}
+			
+			private function updateJournalUsersEventListener(event:UpdatedJournalUsersEvent):void {
+				
+				trace("I have updated the journal entry data");
+				PopUpManager.removePopUp(_progBar);
+				
+				// Show the table
+				journalerDataGrid.visible = true;
+				authorLable.visible = true;
+				
+				// Sort the journal authors list
+				var journalUserSort:Sort = new Sort(); 
+				var dataSortField:SortField = new SortField();
+				dataSortField.numeric = true;
+				dataSortField.name = "entryCount";
+				dataSortField.descending = true;
+				journalUserSort.fields = [dataSortField];
+				
+				
+				kivaModel.journalUsers.sort = journalUserSort;
+				kivaModel.journalUsers.refresh();
+				
+				
+				// Put stuff in the data table
+				journalerDataGrid.dataProvider = kivaModel.journalUsers;
+			}
+			
+			public function formatCurrency(journalUser:Object, col:DataGridColumn):String {
+				return currencyFormatter.format(journalUser.total_amount_raised);
+			}
+			
+			private function showLoading(e:Event = null):void
+                {
+	              
+                    _progBar = new ProgressBar();
+                    _progBar.setStyle("borderColor", 0x000000);
+                    _progBar.setStyle("barColor", 0x6cff00);
+                    _progBar.setStyle("trackHeight",20);
+                   _progBar.mode = "manual";
+
+	                PopUpManager.addPopUp(_progBar,this,true);
+	                PopUpManager.centerPopUp(_progBar);
+                        
+ 
+                }
+            
+            public function changeCountryEventListener(event:DropdownEvent):void {
+            	
+            	trace("changeing country");
+            	
+            	// Unset the Journal Users and hide that table
+            	journalerDataGrid.dataProvider = null;
+            	journalerDataGrid.visible = false;
+				authorLable.visible = false;
+            	
+            	kivaModel.partners.filterFunction = filterPartnerList;
+            	kivaModel.partners.refresh();
+            	
+            	
+            }    
+                
+			public function filterPartnerList(item:Object):Boolean{
+				
+				
+				// Go through the Partner list and filter out those 
+				// that don't match what is selected in the country
+				var partner:Partner = Partner(item);
+				
+				trace("Filtering " + partner.name + " for " + countryDataProvider.selectedItem);
+				
+				for each(var country:Country in partner.countries){
+					
+					if(country.name == countryDataProvider.selectedItem || 
+						countryDataProvider.selectedItem == "All"){
+						return true;
+					}
+
+				}
+			
+			return false;
+		
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<!-- ========================================================================== -->
+	<!-- the ServiceLocator where we specify the remote services -->
+	<control:KivaController id="controller" />
+	
+	<!-- the FrontController, containing Commands specific to this appliation -->
+	<business:Services id="services" />
+	
+	<!-- ========================================================================== -->	
+	
+	<mx:CurrencyFormatter id="currencyFormatter" currencySymbol="$"/>
+	
+	<mx:ComboBox x="575" y="12" id="countryDataProvider" width="180" ></mx:ComboBox>
+	<mx:Label x="495" y="13" text="Country" width="72" fontSize="14"/>
+	
+	<mx:Label x="10" y="11" text="Kiva Field Partners" fontSize="18" width="187"/>
+	<mx:DataGrid x="4" y="47" id="partnerDataGrid" itemClick="partnerItemClickEvent(event)" fontSize="15" >
+		<mx:columns>
+			<mx:DataGridColumn headerText="Name" dataField="name" width="500" />
+			<mx:DataGridColumn headerText="Status" dataField="status" width="75"/>
+			<mx:DataGridColumn headerText="Total Amount Raised" labelFunction="formatCurrency" 
+				width="200" dataField="total_amount_raised" />
+		</mx:columns>
+	</mx:DataGrid>
+	
+	
+	<mx:Label x="10" y="282" text="Journal Authors" fontSize="18" width="154" id="authorLable" visible="false"/>
+	<mx:DataGrid x="4" y="318" id="journalerDataGrid" visible="false" fontSize="15" >
+		<mx:columns>
+			<mx:DataGridColumn headerText="Author" dataField="name" width="400"/>
+			<mx:DataGridColumn headerText="Entries" dataField="entryCount" width="100"/>
+			<mx:DataGridColumn headerText="Comments" dataField="commentCount" width="100"/>
+			<mx:DataGridColumn headerText="Recommendations" dataField="recommendationsCount" width="175"/>
+		</mx:columns>
+	</mx:DataGrid>
+	
+	
+	
+
+	
+</mx:Application>

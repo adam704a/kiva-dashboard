@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
+	xmlns:control="org.kivadashboard.client.control.*" 
+	xmlns:business="org.kivadashboard.client.business.*" 
+	layout="absolute" creationComplete="onCreationComplete()"
+	backgroundColor="#FFFFFF" >
+	
+	<mx:Style source="org/kivadashboard/client/style/main.css" />
+	 
+	<mx:Script>
+		<![CDATA[
+			import mx.collections.ArrayCollection;
+			import mx.core.FlexGlobals;
+			import mx.managers.CursorManager;
+			import mx.rpc.events.FaultEvent;
+			import mx.rpc.events.ResultEvent;
+			
+			import org.kivadashboard.client.event.GetLoansEvent;
+			import org.kivadashboard.client.event.UpdatedLoanDataEvent;
+			import org.kivadashboard.client.factory.LoanFactory;
+			import org.kivadashboard.client.model.object.KivaModel;
+			import org.kivadashboard.client.model.util.KivaModelLocator;
+			
+			[Bindable]
+			public var kivaModel : KivaModel = KivaModelLocator.getInstance();
+			
+			public function onCreationComplete():void{
+			
+				 // Get flash variables passed in 
+				 var partnerId:String = FlexGlobals.topLevelApplication.parameters.partnerId;
+        		 var status:String = FlexGlobals.topLevelApplication.parameters.status;
+
+				 // Add Event Listeners
+				 kivaModel.addEventListener(UpdatedLoanDataEvent.EVENT_NAME, updatedLoanDataEventListener);
+				 
+				 trace("onCreationComplete - Begin with partner" + partnerId + " and status " + status);
+				  
+				 var params:Object = {}; 
+				 params["app_id"] = "net.kivadashboard.kivaloantable";
+				 params["partner"] = partnerId;
+				 params["status"] = status;
+				
+				// Get the data
+				var getLoansEvent:GetLoansEvent = new GetLoansEvent(params);
+				getLoansEvent.dispatch();	
+				
+			
+				
+				
+			}
+			
+			public function updatedLoanDataEventListener(event:UpdatedLoanDataEvent):void{
+				
+				var resultEvent:ResultEvent = ResultEvent(data);
+				var kivaModel : KivaModel = KivaModelLocator.getInstance();
+				
+				dataGrid.dataProvider = kivaModel.loans;
+				
+				totalBorrowersLabel.visible = true;
+				totalBorrowersText.text = kivaModel.loans.length.toString();
+				
+			}
+			
+			
+			private function displayLocationLabelFunction(loan:Object, col:DataGridColumn):String {
+			  
+			     return loan.location.town;
+		    }
+			
+			
+		]]>
+	</mx:Script>
+
+	<!-- ========================================================================== -->
+	<!-- the ServiceLocator where we specify the remote services -->
+	<control:KivaController id="controller" />
+	
+	<!-- the FrontController, containing Commands specific to this appliation -->
+	<business:Services id="services" />
+	
+	<!-- ========================================================================== -->	
+	
+	
+	<mx:DataGrid x="0" y="0" width="740" height="200" id="dataGrid">
+		<mx:columns>
+			<mx:DataGridColumn headerText="Name" width="160" >
+			<mx:itemRenderer>
+			    <mx:Component>
+			      <mx:LinkButton label="{data.name}" click="navigateToURL(new URLRequest(data.url))" 
+			      	fontWeight="normal" textDecoration="underline" color="blue" textAlign="left"/> 
+			    </mx:Component>
+			  </mx:itemRenderer>
+			</mx:DataGridColumn>
+			<mx:DataGridColumn headerText="Activity" dataField="activity" width="130"/>
+			<mx:DataGridColumn headerText="Funded Amount" dataField="fundedAmount" width="110"/>
+			<mx:DataGridColumn headerText="Loan Amount" dataField="loanAmount" width="110"/>
+			<mx:DataGridColumn headerText="Location" labelFunction="displayLocationLabelFunction" width="230"/>
+		</mx:columns>
+	</mx:DataGrid>
+	<mx:Label id="totalBorrowersLabel" x="577" y="200" text="Total Borrowers:" width="103" visible="true"/>
+	<mx:Text id="totalBorrowersText" x="690" y="198"  width="40"/>
+	
+	
+	
+</mx:Application>

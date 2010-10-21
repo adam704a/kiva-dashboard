@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" 
+	layout="absolute" 
+	xmlns:control="org.kivadashboard.client.control.*" 
+	xmlns:business="org.kivadashboard.client.business.*" 
+	backgroundColor="White" xmlns:pages="org.kivadashboard.client.pages.*">
+
+	<mx:Script>
+		<![CDATA[
+			
+			public function showLoansByRegion():void{
+				myViewStack.selectedChild=loansByRegion;
+			}
+			
+			public function showMFIsPerRegion():void{
+				myViewStack.selectedChild=mFIsByRegion;
+			}
+			
+		]]>
+	</mx:Script>
+
+	<!-- ========================================================================== -->
+	<!-- the ServiceLocator where we specify the remote services -->
+	<control:KivaController id="controller" />
+	
+	<!-- the FrontController, containing Commands specific to this appliation -->
+	<business:Services id="services" />
+	
+	<!-- ========================================================================== -->	
+	
+	
+
+	<mx:ViewStack id="myViewStack" borderStyle="solid" width="100%" height="100%">
+
+		<pages:LoansByRegionCanvas id="loansByRegion" name="Loans By Region" />
+		<pages:MFIsByRegionCanvas id="mFIsByRegion"	name="MFIs By Region" />
+		
+	</mx:ViewStack>
+	
+	
+
+
+
+</mx:Application>

@@ -1,0 +1,21 @@
+/* CSS file */
+
+.simpleLink {
+	font-weight: normal;
+	color: blue;
+}
+
+ .htmlLink
+{
+    fontSize: 12;
+    fontWeight: normal;
+    text-decoration:none;
+}
+
+.htmlLinkHover
+{
+    fontSize: 12;
+    fontWeight: normal;
+    text-decoration:underline;
+    skin: ClassReference(null);
+}

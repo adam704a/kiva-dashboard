@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml" layout="absolute"
+	backgroundColor="#FFFFFF" 
+	borderColor="black" borderStyle="solid"
+	width="446" height="494" creationComplete="onCreationComplete()" 
+	xmlns:control="org.kivadashboard.client.control.*" 
+	xmlns:business="org.kivadashboard.client.business.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import org.kivadashboard.client.model.object.Payment;
+			import org.kivadashboard.client.model.object.TermPayment;
+			import org.kivadashboard.client.model.object.Loan;
+			import mx.events.ValidationResultEvent;
+			import org.kivadashboard.client.event.GetLoanDetailEvent;
+			import mx.events.FlexEvent;
+			import org.kivadashboard.client.model.util.KivaModelLocator;
+			import org.kivadashboard.client.model.object.KivaModel;
+			import org.kivadashboard.client.event.UpdatedLoanDataEvent;
+			
+			public var kivaModel : KivaModel = KivaModelLocator.getInstance();
+			
+			public function onCreationComplete():void {
+				
+				// Add Event Listeners
+				 kivaModel.addEventListener(UpdatedLoanDataEvent.EVENT_NAME, updatedLoanDataEventListener);
+				 enterKivaIdText.addEventListener(FlexEvent.ENTER, submitForm);
+				 enterKivaIdText.addEventListener(Event.CHANGE, updateKivaIdText);
+			}
+			
+			public function updateKivaIdText(event:Event):void {
+				
+				// clear out the error message
+				if(errorText.text.length > 0){
+					errorText.text = "";
+				}
+			}
+			
+			public function submitForm(event:FlexEvent):void {
+				
+				// clear out the fields
+				dateLastRepaymentText.text = "";
+				totalReportedRepaymentText.text = "";
+				loanSizeinLocalCurrencyText.text = "";
+				errorText.text = "";
+				
+				// Validate the required fields.
+				var vResult:ValidationResultEvent = loanIdValidator.validate();
+				if (vResult.type==ValidationResultEvent.INVALID)
+					return
+				
+				var getLoanDetailEvent:GetLoanDetailEvent = new GetLoanDetailEvent(enterKivaIdText.text);
+				getLoanDetailEvent.dispatch();
+				
+			}
+			
+			public function updatedLoanDataEventListener(event:UpdatedLoanDataEvent):void {
+				
+				var today:Date = new Date();
+				var loan:Loan = kivaModel.loans.getItemAt(0) as Loan;
+				
+				var lastScheduledPayment:TermPayment = loan.lastLocalPayment;
+				var lastReportedPayment:TermPayment = loan.lastExpectedPayment;
+				
+				dateLastRepaymentText.text = dateFormatter.format(lastReportedPayment.dueDate);
+				 
+				//If this is in the future, borrower hasn't finished up their loan
+				if(lastScheduledPayment.dueDate.time > today.time ){
+					
+					dateLastRepaymentText.setStyle("color","#fe0000");
+					
+					//in this case also set a few other things.  This email sent from Darren on 11/21
+					loanSizeinLocalCurrencyText.text = numberFormatter.format(loan.disbursalAmount) + " " + loan.disbusalCurrency;
+					totalReportedRepaymentText.text = numberFormatter.format( loan.totalActualReported) + " " + loan.disbusalCurrency;
+					
+					//Update the color of the last reported payment
+					if( loan.isLoanFullyPaidBack ){
+						totalReportedRepaymentText.setStyle("color","#17C10A");
+						totalReportedRepaymentText.toolTip = "This borrower has paid off this loan";
+					}
+					else{
+						totalReportedRepaymentText.setStyle("color","#fe0000");
+						totalReportedRepaymentText.toolTip = "This borrowers is still paying off this loan";
+					}	
+					
+				}
+				//If its in the past turn this green, which means the borrower is eligable for another loan
+				else{
+					dateLastRepaymentText.setStyle("color","#17C10A");
+					dateLastRepaymentText.toolTip = "This borrower has paid off this loan";
+				}
+			}
+			
+		]]>
+	</mx:Script>
+	
+	<mx:NumberFormatter id="numberFormatter" useThousandsSeparator="true" />
+	
+	<mx:NumberValidator id="loanIdValidator" source="{enterKivaIdText}" property="text" domain="int" 
+		invalidCharError="This is not a valid loan id" trigger="{enterKivaIdText}" triggerEvent="FlexEvent.ENTER" />
+		
+   <mx:DateFormatter id="dateFormatter" formatString="MMMM D, YYYY" />
+	
+	<!-- ========================================================================== -->
+	<!-- the ServiceLocator where we specify the remote services -->
+	<control:KivaController id="controller" />
+	
+	<!-- the FrontController, containing Commands specific to this appliation -->
+	<business:Services id="services" />
+	
+	<!-- ========================================================================== -->	
+	
+	
+	<mx:Label x="51" y="30" text="Step 1: Check Date of Last Repayment" width="353" height="25" fontSize="16" fontWeight="bold" textDecoration="underline" id="step1Label"/>
+	<mx:Label x="21" y="64" text="Please Enter Kiva Loan ID:" width="237" height="23" fontSize="16" id="enterKivaIdLabel"/>
+	<mx:TextInput x="253" y="60" width="171" fontSize="16" id="enterKivaIdText"/>
+	<mx:Label x="21" y="107" text="Date of Last Repayment:" fontSize="16" id="dateLastRepaymentLabel"/>
+	<mx:Label x="51" y="249" text="Step 2: Check Reported Repayments" fontWeight="bold" textDecoration="underline" fontSize="16" id="step2Label"/>
+	<mx:Text x="251" y="108" fontSize="16" width="171" id="dateLastRepaymentText"/>
+	<mx:TextArea x="21" y="138" width="403" height="92" id="step1Description">
+		<mx:text><![CDATA[If the date of the last repayment has passed, go ahead & publish the loan as the entrepreneur has already paid back their previous loan.
+
+If the date of the last repayment has yet to pass, please go to Step 2.]]></mx:text>
+	</mx:TextArea>
+	<mx:Label x="22" y="283" text="Loan Size in Local Currency:" fontSize="16" id="loanSizeinLocalCurrencyLabel"/>
+	<mx:TextArea x="22" y="358" width="402" height="100" id="step2Description">
+		<mx:text><![CDATA[If the Last Reported Repayment is equal or greater than loan size in local currency, go ahead and publish the loan as the MFI has reported the loan as being fully paid back.
+
+If the Last Reported Repayment is less than the local loan size, please mark the loan as having an issue as the entrepreneur has not paid off their previous loan.]]></mx:text>
+	</mx:TextArea>
+	<mx:Label x="22" y="326" text="Total Reported:" fontWeight="normal" fontSize="16" fontStyle="normal" id="totalReportedRepaymentLabel"/>
+	<mx:Text x="266" y="286" fontSize="16" width="158" id="loanSizeinLocalCurrencyText"/>
+	<mx:Text x="266" y="327" fontSize="16" width="158" id="totalReportedRepaymentText"/>
+	<mx:Text x="10" y="7" width="424" id="errorText" color="#FC0101" fontStyle="italic" textAlign="center"/>
+	
+</mx:Application>
